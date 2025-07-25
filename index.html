@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Moving Curl & Divergence</title>
+  <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.155/build/three.module.js",
+    "OrbitControls": "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/controls/OrbitControls.js"
+  }
+}
+</script>
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'OrbitControls';
+
+  const canvas = document.getElementById('c');
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.GridHelper(10, 10));
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 50);
+  camera.position.set(5, 5, 10);
+  camera.lookAt(0,0,0);
+  new OrbitControls(camera, renderer.domElement);
+
+  // Sample vector field: a circular flow in the XZ plane
+  function curlField(pos) {
+    return new THREE.Vector3(-pos.z, 0, pos.x).multiplyScalar(0.2);
+  }
+  function divergenceField(pos) {
+    return pos.clone().multiplyScalar(0.2); // radial outflow
+  }
+
+  let useCurl = true;
+  window.addEventListener('keydown', e => {
+    if (e.key === 'c') useCurl = true;
+    if (e.key === 'v') useCurl = false;
+  });
+
+  const arrows = [];
+  const num = 200;
+  const boundary = 5;
+  for (let i = 0; i < num; i++) {
+    const pos = new THREE.Vector3(
+      THREE.MathUtils.randFloatSpread(boundary),
+      0,
+      THREE.MathUtils.randFloatSpread(boundary)
+    );
+    const dir = new THREE.Vector3(0,1,0);
+    const arrow = new THREE.ArrowHelper(dir, pos.clone(), 0.5, 0x00aaff);
+    scene.add(arrow);
+    arrows.push({ arrow, pos });
+  }
+
+  const dt = 0.02;
+  const wrap = (v) => {
+    if (v.x > boundary) v.x = -boundary;
+    if (v.x < -boundary) v.x = boundary;
+    if (v.z > boundary) v.z = -boundary;
+    if (v.z < -boundary) v.z = boundary;
+  };
+
+  function animate() {
+    requestAnimationFrame(animate);
+    arrows.forEach(obj => {
+      const { arrow, pos } = obj;
+      const field = useCurl ? curlField(pos) : divergenceField(pos);
+      pos.add(field.clone().multiplyScalar(dt));
+      wrap(pos);
+      arrow.position.copy(pos);
+      const norm = field.clone().normalize();
+      arrow.setDirection(norm);
+      arrow.setLength(0.6, 0.15, 0.1);
+    });
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
+</body>
+</html>

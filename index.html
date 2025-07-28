@@ -1,92 +1,551 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Moving Curl & Divergence</title>
-  <style>body { margin: 0; overflow: hidden; }</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Animated Vector Field - Three.js</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            max-width: 280px;
+        }
+        .control-group {
+            margin-bottom: 10px;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+            margin-right: 10px;
+        }
+        input[type="range"] {
+            width: 100px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+            font-size: 12px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.active {
+            background: #2196F3;
+        }
+        .field-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        #info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            color: #ccc;
+            font-size: 12px;
+        }
+        #legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .legend-color {
+            width: 20px;
+            height: 15px;
+            margin-right: 10px;
+            border-radius: 3px;
+        }
+    </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.155/build/three.module.js",
-    "OrbitControls": "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/controls/OrbitControls.js"
-  }
-}
-</script>
-<script type="module">
-  import * as THREE from 'three';
-  import { OrbitControls } from 'OrbitControls';
+    <div id="container">
+        <div id="controls">
+            <h3 style="margin-top: 0;">2D Vector Field Controls</h3>
+            
+            <h4>Field Type</h4>
+            <div class="field-buttons">
+                <button id="waveBtn" class="active">Wave</button>
+                <button id="vortexBtn">Vortex</button>
+                <button id="radialBtn">Radial</button>
+                <button id="combinedBtn">Combined</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Animation Speed:</label>
+                <input type="range" id="speed" min="0" max="5" step="0.1" value="1">
+                <span id="speedValue">1.0</span>
+            </div>
+            <div class="control-group">
+                <label>Field Strength:</label>
+                <input type="range" id="strength" min="0.1" max="3" step="0.1" value="1">
+                <span id="strengthValue">1.0</span>
+            </div>
+            <div class="control-group">
+                <label>Arrow Scale:</label>
+                <input type="range" id="scale" min="0.5" max="2" step="0.1" value="1">
+                <span id="scaleValue">1.0</span>
+            </div>
+            <div class="control-group">
+                <label>Grid Size:</label>
+                <input type="range" id="gridSize" min="5" max="25" step="1" value="10">
+                <span id="gridSizeValue">10</span>
+            </div>
+            <div class="control-group">
+                <label>Frequency:</label>
+                <input type="range" id="frequency" min="0.1" max="2" step="0.1" value="0.5">
+                <span id="frequencyValue">0.5</span>
+            </div>
+            <div class="control-group">
+                <button id="pauseBtn">Pause</button>
+                <button id="resetBtn">Reset</button>
+            </div>
+        </div>
+        
+        <div id="legend">
+            <h4 style="margin-top: 0;">Legend</h4>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(90deg, #ff0000, #00ff00, #0000ff);"></div>
+                <span>Vector Direction</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffffff;"></div>
+                <span>Grid Lines</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffff00;"></div>
+                <span>Center Point</span>
+            </div>
+        </div>
+        
+        <div id="info">
+            Mouse: Pan | Wheel: Zoom | Right-click: Rotate<br>
+            <span id="vectorCount">100 vectors in 10×10 grid</span><br>
+            All arrows normalized to 1 unit length
+        </div>
+    </div>
 
-  const canvas = document.getElementById('c');
-  const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  const scene = new THREE.Scene();
-  scene.add(new THREE.GridHelper(10, 10));
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 50);
-  camera.position.set(5, 5, 10);
-  camera.lookAt(0,0,0);
-  new OrbitControls(camera, renderer.domElement);
-
-  // Sample vector field: a circular flow in the XZ plane
-  function curlField(pos) {
-    return new THREE.Vector3(-pos.z, 0, pos.x).multiplyScalar(0.2);
-  }
-  function divergenceField(pos) {
-    return pos.clone().multiplyScalar(0.2); // radial outflow
-  }
-
-  let useCurl = true;
-  window.addEventListener('keydown', e => {
-    if (e.key === 'c') useCurl = true;
-    if (e.key === 'v') useCurl = false;
-  });
-
-  const arrows = [];
-  const num = 200;
-  const boundary = 5;
-  for (let i = 0; i < num; i++) {
-    const pos = new THREE.Vector3(
-      THREE.MathUtils.randFloatSpread(boundary),
-      0,
-      THREE.MathUtils.randFloatSpread(boundary)
-    );
-    const dir = new THREE.Vector3(0,1,0);
-    const arrow = new THREE.ArrowHelper(dir, pos.clone(), 0.5, 0x00aaff);
-    scene.add(arrow);
-    arrows.push({ arrow, pos });
-  }
-
-  const dt = 0.02;
-  const wrap = (v) => {
-    if (v.x > boundary) v.x = -boundary;
-    if (v.x < -boundary) v.x = boundary;
-    if (v.z > boundary) v.z = -boundary;
-    if (v.z < -boundary) v.z = boundary;
-  };
-
-  function animate() {
-    requestAnimationFrame(animate);
-    arrows.forEach(obj => {
-      const { arrow, pos } = obj;
-      const field = useCurl ? curlField(pos) : divergenceField(pos);
-      pos.add(field.clone().multiplyScalar(dt));
-      wrap(pos);
-      arrow.position.copy(pos);
-      const norm = field.clone().normalize();
-      arrow.setDirection(norm);
-      arrow.setLength(0.6, 0.15, 0.1);
-    });
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        class VectorField2D {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.clock = new THREE.Clock();
+                
+                this.gridSize = 10;
+                this.arrowLength = 1.0;
+                this.time = 0;
+                this.animationSpeed = 1.0;
+                this.fieldStrength = 1.0;
+                this.arrowScale = 1.0;
+                this.frequency = 0.5;
+                this.isPaused = false;
+                this.fieldType = 'wave';
+                
+                this.arrows = [];
+                this.arrowHelpers = [];
+                
+                this.init();
+                this.createVectorField();
+                this.setupControls();
+                this.setupCameraControls();
+                this.animate();
+            }
+            
+            init() {
+                // Setup renderer
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setClearColor(0x111111);
+                document.getElementById('container').appendChild(this.renderer.domElement);
+                
+                // Setup camera (2D orthographic view)
+                this.camera.position.set(0, 0, 10);
+                this.camera.lookAt(0, 0, 0);
+                
+                // Add lighting
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                this.scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(0, 0, 10);
+                this.scene.add(directionalLight);
+                
+                // Add grid helper for reference
+                this.createGrid();
+                
+                // Add center point marker
+                const centerGeometry = new THREE.SphereGeometry(0.1, 8, 6);
+                const centerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+                const centerSphere = new THREE.Mesh(centerGeometry, centerMaterial);
+                this.scene.add(centerSphere);
+                
+                // Handle window resize
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+            
+            createGrid() {
+                // Create a custom grid
+                const gridMaterial = new THREE.LineBasicMaterial({ color: 0x444444 });
+                const gridSize = 20;
+                const divisions = 20;
+                
+                const geometry = new THREE.BufferGeometry();
+                const vertices = [];
+                
+                // Horizontal lines
+                for (let i = 0; i <= divisions; i++) {
+                    const y = (i / divisions - 0.5) * gridSize;
+                    vertices.push(-gridSize/2, y, 0);
+                    vertices.push(gridSize/2, y, 0);
+                }
+                
+                // Vertical lines
+                for (let i = 0; i <= divisions; i++) {
+                    const x = (i / divisions - 0.5) * gridSize;
+                    vertices.push(x, -gridSize/2, 0);
+                    vertices.push(x, gridSize/2, 0);
+                }
+                
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                const grid = new THREE.LineSegments(geometry, gridMaterial);
+                this.scene.add(grid);
+            }
+            
+            setupCameraControls() {
+                let isDragging = false;
+                let isRightDragging = false;
+                let previousMousePosition = { x: 0, y: 0 };
+                
+                this.renderer.domElement.addEventListener('mousedown', (e) => {
+                    if (e.button === 0) isDragging = true;
+                    if (e.button === 2) isRightDragging = true;
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                });
+                
+                this.renderer.domElement.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        const deltaMove = {
+                            x: e.clientX - previousMousePosition.x,
+                            y: e.clientY - previousMousePosition.y
+                        };
+                        
+                        // Pan camera
+                        const panSpeed = 0.02;
+                        this.camera.position.x -= deltaMove.x * panSpeed;
+                        this.camera.position.y += deltaMove.y * panSpeed;
+                    }
+                    
+                    if (isRightDragging) {
+                        const deltaMove = {
+                            x: e.clientX - previousMousePosition.x,
+                            y: e.clientY - previousMousePosition.y
+                        };
+                        
+                        // Rotate camera around z-axis
+                        const rotationSpeed = 0.01;
+                        this.scene.rotation.z += deltaMove.x * rotationSpeed;
+                    }
+                    
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                });
+                
+                this.renderer.domElement.addEventListener('mouseup', () => {
+                    isDragging = false;
+                    isRightDragging = false;
+                });
+                
+                this.renderer.domElement.addEventListener('wheel', (e) => {
+                    const zoomSpeed = 0.1;
+                    const factor = e.deltaY > 0 ? (1 + zoomSpeed) : (1 - zoomSpeed);
+                    
+                    // Zoom orthographic camera
+                    this.camera.left *= factor;
+                    this.camera.right *= factor;
+                    this.camera.top *= factor;
+                    this.camera.bottom *= factor;
+                    this.camera.updateProjectionMatrix();
+                });
+                
+                this.renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+            }
+            
+            recreateField() {
+                // Clear existing arrows
+                this.arrows.forEach(arrow => this.scene.remove(arrow.helper));
+                this.arrows = [];
+                this.arrowHelpers = [];
+                
+                // Create new field
+                this.createVectorField();
+                
+                // Update info
+                document.getElementById('vectorCount').textContent = 
+                    `${this.gridSize * this.gridSize} vectors in ${this.gridSize}×${this.gridSize} grid`;
+            }
+            
+            createVectorField() {
+                const spacing = 1.5;
+                const halfGrid = (this.gridSize - 1) * spacing / 2;
+                
+                for (let x = 0; x < this.gridSize; x++) {
+                    for (let y = 0; y < this.gridSize; y++) {
+                        const position = new THREE.Vector3(
+                            x * spacing - halfGrid,
+                            y * spacing - halfGrid,
+                            0
+                        );
+                        
+                        // Create arrow helper
+                        const direction = new THREE.Vector3(1, 0, 0); // Initial direction
+                        const arrowHelper = new THREE.ArrowHelper(
+                            direction,
+                            position,
+                            this.arrowLength,
+                            this.getArrowColor(x, y),
+                            this.arrowLength * 0.2,
+                            this.arrowLength * 0.1
+                        );
+                        
+                        this.scene.add(arrowHelper);
+                        this.arrowHelpers.push(arrowHelper);
+                        
+                        // Store arrow data
+                        this.arrows.push({
+                            position: position.clone(),
+                            helper: arrowHelper,
+                            gridX: x,
+                            gridY: y
+                        });
+                    }
+                }
+            }
+            
+            getArrowColor(x, y) {
+                const hue = (x + y) / (this.gridSize * 2) * 360;
+                return new THREE.Color().setHSL(hue / 360, 0.7, 0.6);
+            }
+            
+            vectorFieldFunction(x, y, time) {
+                let vx = 0, vy = 0;
+                
+                switch (this.fieldType) {
+                    case 'wave':
+                        // Wave field
+                        vx = Math.sin(this.frequency * y + time);
+                        vy = Math.cos(this.frequency * x + time * 0.8);
+                        break;
+                        
+                    case 'vortex':
+                        // Vortex field (rotation around center)
+                        vx = -y + Math.sin(time * 0.5) * 0.5;
+                        vy = x + Math.cos(time * 0.7) * 0.5;
+                        break;
+                        
+                    case 'radial':
+                        // Radial field (expanding/contracting)
+                        const r = Math.sqrt(x * x + y * y);
+                        const phase = Math.sin(time) * 0.5 + 0.5;
+                        if (r > 0.1) {
+                            vx = (x / r) * phase;
+                            vy = (y / r) * phase;
+                        }
+                        break;
+                        
+                    case 'combined':
+                        // Combination of multiple patterns
+                        const wave_vx = Math.sin(this.frequency * y + time);
+                        const wave_vy = Math.cos(this.frequency * x + time * 0.8);
+                        const vortex_vx = -y * 0.3;
+                        const vortex_vy = x * 0.3;
+                        
+                        vx = wave_vx * 0.7 + vortex_vx;
+                        vy = wave_vy * 0.7 + vortex_vy;
+                        break;
+                }
+                
+                return new THREE.Vector2(vx, vy);
+            }
+            
+            updateVectorField() {
+                this.arrows.forEach(arrow => {
+                    const pos = arrow.position;
+                    const vector = this.vectorFieldFunction(pos.x, pos.y, this.time);
+                    
+                    // Normalize the vector to unit length
+                    const magnitude = vector.length();
+                    if (magnitude > 0.001) {
+                        vector.normalize();
+                        
+                        // Scale by field strength
+                        vector.multiplyScalar(this.fieldStrength);
+                        
+                        // Convert to 3D direction
+                        const direction3D = new THREE.Vector3(vector.x, vector.y, 0);
+                        
+                        // Update arrow
+                        arrow.helper.setDirection(direction3D);
+                        arrow.helper.setLength(
+                            this.arrowLength * this.arrowScale,
+                            this.arrowLength * this.arrowScale * 0.2,
+                            this.arrowLength * this.arrowScale * 0.1
+                        );
+                        
+                        // Update color based on direction and magnitude
+                        const angle = Math.atan2(vector.y, vector.x);
+                        const hue = ((angle + Math.PI) / (2 * Math.PI)) * 360;
+                        const saturation = 0.8;
+                        const lightness = 0.4 + magnitude * 0.3;
+                        
+                        arrow.helper.setColor(new THREE.Color().setHSL(hue / 360, saturation, lightness));
+                    }
+                });
+            }
+            
+            setFieldType(type) {
+                this.fieldType = type;
+                
+                // Update button states
+                document.querySelectorAll('.field-buttons button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById(type + 'Btn').classList.add('active');
+            }
+            
+            setupControls() {
+                const speedSlider = document.getElementById('speed');
+                const strengthSlider = document.getElementById('strength');
+                const scaleSlider = document.getElementById('scale');
+                const gridSizeSlider = document.getElementById('gridSize');
+                const frequencySlider = document.getElementById('frequency');
+                const pauseBtn = document.getElementById('pauseBtn');
+                const resetBtn = document.getElementById('resetBtn');
+                
+                // Field type buttons
+                document.getElementById('waveBtn').addEventListener('click', () => {
+                    this.setFieldType('wave');
+                });
+                document.getElementById('vortexBtn').addEventListener('click', () => {
+                    this.setFieldType('vortex');
+                });
+                document.getElementById('radialBtn').addEventListener('click', () => {
+                    this.setFieldType('radial');
+                });
+                document.getElementById('combinedBtn').addEventListener('click', () => {
+                    this.setFieldType('combined');
+                });
+                
+                speedSlider.addEventListener('input', (e) => {
+                    this.animationSpeed = parseFloat(e.target.value);
+                    document.getElementById('speedValue').textContent = this.animationSpeed.toFixed(1);
+                });
+                
+                strengthSlider.addEventListener('input', (e) => {
+                    this.fieldStrength = parseFloat(e.target.value);
+                    document.getElementById('strengthValue').textContent = this.fieldStrength.toFixed(1);
+                });
+                
+                scaleSlider.addEventListener('input', (e) => {
+                    this.arrowScale = parseFloat(e.target.value);
+                    document.getElementById('scaleValue').textContent = this.arrowScale.toFixed(1);
+                });
+                
+                gridSizeSlider.addEventListener('input', (e) => {
+                    const newSize = parseInt(e.target.value);
+                    if (newSize !== this.gridSize) {
+                        this.gridSize = newSize;
+                        document.getElementById('gridSizeValue').textContent = newSize;
+                        this.recreateField();
+                    }
+                });
+                
+                frequencySlider.addEventListener('input', (e) => {
+                    this.frequency = parseFloat(e.target.value);
+                    document.getElementById('frequencyValue').textContent = this.frequency.toFixed(1);
+                });
+                
+                pauseBtn.addEventListener('click', () => {
+                    this.isPaused = !this.isPaused;
+                    pauseBtn.textContent = this.isPaused ? 'Resume' : 'Pause';
+                });
+                
+                resetBtn.addEventListener('click', () => {
+                    this.time = 0;
+                    this.camera.position.set(0, 0, 10);
+                    this.camera.left = -10;
+                    this.camera.right = 10;
+                    this.camera.top = 10;
+                    this.camera.bottom = -10;
+                    this.camera.updateProjectionMatrix();
+                    this.scene.rotation.z = 0;
+                });
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                if (!this.isPaused) {
+                    const deltaTime = this.clock.getDelta();
+                    this.time += deltaTime * this.animationSpeed;
+                    this.updateVectorField();
+                }
+                
+                this.renderer.render(this.scene, this.camera);
+            }
+            
+            onWindowResize() {
+                const aspect = window.innerWidth / window.innerHeight;
+                const frustumSize = 20;
+                
+                this.camera.left = -frustumSize * aspect / 2;
+                this.camera.right = frustumSize * aspect / 2;
+                this.camera.top = frustumSize / 2;
+                this.camera.bottom = -frustumSize / 2;
+                this.camera.updateProjectionMatrix();
+                
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+        
+        // Initialize the vector field
+        const vectorField = new VectorField2D();
+    </script>
 </body>
 </html>

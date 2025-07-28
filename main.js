@@ -1,80 +1,92 @@
- import * as THREE from 'three';
-    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+// main.js (Module pane)
+import * as THREE from 'three';
+import { OrbitControls } from 'three/controls/OrbitControls.js';
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    document.body.appendChild(renderer.domElement);
-    renderer.setSize(window.innerWidth, window.innerHeight);
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera( 60, innerWidth/ innerHeight, 0.1, 100 );
+camera.position.set(0, 5, 10);
 
-    const scene = new THREE.Scene();
-    const aspect = window.innerWidth / window.innerHeight;
-    const camera = new THREE.OrthographicCamera(-10 * aspect, 10 * aspect, 10, -10, 0.1, 100);
-    camera.position.set(0, 0, 10);
+let renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize( innerWidth, innerHeight );
+document.body.appendChild( renderer.domElement );
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableRotate = false;
-    controls.enableZoom = true;
-    controls.enablePan = true;
-    controls.screenSpacePanning = true; // Keep panning in the XY plane
-    controls.minZoom = 0.5;
-    controls.maxZoom = 4;
+window.addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+});
 
-    const arrowGroup = new THREE.Group();
-    scene.add(arrowGroup);
+let controls = new OrbitControls(camera, renderer.domElement);
 
-    const fieldSize = 10;
-    const spacing = 2;
-    const arrows = [];
+// vector field parameters
+const gridSize = 10;
+const spacing = 1;
+const arrows = [];
+const arrowGroup = new THREE.Group();
+scene.add(arrowGroup);
 
-    for (let x = -fieldSize; x <= fieldSize; x += spacing) {
-      for (let y = -fieldSize; y <= fieldSize; y += spacing) {
-        const origin = new THREE.Vector3(x, y, 0);
-        const dir = new THREE.Vector3(1, 0, 0);
-        const arrow = new THREE.ArrowHelper(dir, origin, 1, 0x0077ff);
-        arrows.push({ arrow, x, y });
+// helpers
+const arrowDir = new THREE.Vector3();
+function makeField() {
+  for (let x = -gridSize; x <= gridSize; x += spacing) {
+    for (let y = -gridSize; y <= gridSize; y += spacing) {
+      for (let z = -gridSize; z <= gridSize; z += spacing) {
+        const origin = new THREE.Vector3(x, y, z);
+        arrowDir.set(0, 1, 0); // default upward
+        const arrow = new THREE.ArrowHelper( arrowDir.clone(), origin, 0.5, 0x00ff00 );
         arrowGroup.add(arrow);
+        arrows.push({ arrow, origin });
       }
     }
+  }
+}
 
-    let mode = 'divergence';
-    document.getElementById('btn-div').onclick = () => mode = 'divergence';
-    document.getElementById('btn-curl').onclick = () => mode = 'curl';
+makeField();
 
-    function vectorField(x, y) {
-      if (mode === 'divergence') return new THREE.Vector2(x, y);
-      else return new THREE.Vector2(-y, x);
+// interactive sphere
+const sphereGeo = new THREE.SphereGeometry(1, 32, 32);
+const sphereMat = new THREE.MeshPhongMaterial({ color: 0xff0000, opacity: 0.5, transparent: true });
+const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+sphere.position.set(2, 0, 0);
+scene.add(sphere);
+
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(5,10,7);
+scene.add(light);
+
+function animateField(time) {
+  const spherePos = sphere.position;
+  const radius = 2;
+  arrows.forEach(obj => {
+    const d = obj.origin.distanceTo(spherePos);
+    if (d < radius*2) {
+      // deflect vector: tangent around sphere
+      const away = new THREE.Vector3().subVectors(obj.origin, spherePos).normalize();
+      const tangent = new THREE.Vector3().crossVectors(away, new THREE.Vector3(0,1,0)).normalize();
+      obj.arrow.setDirection( tangent );
+      obj.arrow.setColor( new THREE.Color( 1 - d/(radius*2), d/(radius*2), 0 ) );
+    } else {
+      obj.arrow.setDirection( new THREE.Vector3(0,1,0) );
+      obj.arrow.setColor( new THREE.Color(0,1,0) );
     }
+    // optional magnitude oscillation
+    const mag = 0.3 + 0.2 * Math.sin(time/500 + obj.origin.x);
+    obj.arrow.setLength(mag);
+  });
+}
 
-    function animate() {
-      const t = performance.now() * 0.001;
+// move sphere in a loop
+function updateSphere(time) {
+  sphere.position.x = 2 * Math.cos(time/2000);
+  sphere.position.z = 2 * Math.sin(time/2000);
+}
 
-      arrows.forEach(({ arrow, x, y }) => {
-        const base = vectorField(x, y);
-        if (mode === 'divergence') {
-          const mag = base.length();
-          const pulse = Math.sin(t * 2 + (x + y) * 0.5) * 0.5 + 1;
-          base.setLength(mag * pulse);
-        } else {
-          base.rotateAround(new THREE.Vector2(0, 0), t * 0.5);
-        }
+function render(time) {
+  animateField(time);
+  updateSphere(time);
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(render);
+}
 
-        const dir3 = new THREE.Vector3(base.x, base.y, 0).normalize();
-        arrow.setDirection(dir3);
-        arrow.setLength(base.length(), 0.3, 0.2);
-      });
-
-      controls.update();
-      renderer.render(scene, camera);
-      requestAnimationFrame(animate);
-    }
-
-    animate();
-
-    window.addEventListener('resize', () => {
-      const ar = window.innerWidth / window.innerHeight;
-      camera.left = -10 * ar;
-      camera.right = 10 * ar;
-      camera.top = 10;
-      camera.bottom = -10;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+requestAnimationFrame(render);

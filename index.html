@@ -3,549 +3,444 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2D Animated Vector Field - Three.js</title>
+    <title>3D Vector Flow on Paraboloid Surface</title>
     <style>
         body {
             margin: 0;
             padding: 0;
-            background: #000;
-            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0f23, #1a1a3e);
             overflow: hidden;
+            font-family: 'Arial', sans-serif;
         }
+        
         #container {
+            position: relative;
             width: 100vw;
             height: 100vh;
-            position: relative;
         }
-        #controls {
+        
+        #info {
             position: absolute;
             top: 20px;
             left: 20px;
-            z-index: 100;
-            background: rgba(0, 0, 0, 0.8);
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.7);
             padding: 15px;
-            border-radius: 8px;
-            color: white;
-            font-size: 14px;
-            max-width: 280px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            max-width: 300px;
         }
-        .control-group {
-            margin-bottom: 10px;
-        }
-        label {
-            display: inline-block;
-            width: 120px;
-            margin-right: 10px;
-        }
-        input[type="range"] {
-            width: 100px;
-        }
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 5px 5px 5px 0;
-            font-size: 12px;
-        }
-        button:hover {
-            background: #45a049;
-        }
-        button.active {
-            background: #2196F3;
-        }
-        .field-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin: 10px 0;
-        }
-        #info {
+        
+        #controls {
             position: absolute;
             bottom: 20px;
             left: 20px;
-            z-index: 100;
-            color: #ccc;
-            font-size: 12px;
-        }
-        #legend {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 100;
-            background: rgba(0, 0, 0, 0.8);
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.7);
             padding: 15px;
-            border-radius: 8px;
-            color: white;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        
+        .control-group {
+            margin: 10px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
             font-size: 12px;
         }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin: 5px 0;
-        }
-        .legend-color {
-            width: 20px;
-            height: 15px;
-            margin-right: 10px;
-            border-radius: 3px;
+        
+        input[type="range"] {
+            width: 100%;
         }
     </style>
 </head>
 <body>
     <div id="container">
-        <div id="controls">
-            <h3 style="margin-top: 0;">2D Vector Field Controls</h3>
-            
-            <h4>Field Type</h4>
-            <div class="field-buttons">
-                <button id="waveBtn" class="active">Wave</button>
-                <button id="vortexBtn">Vortex</button>
-                <button id="radialBtn">Radial</button>
-                <button id="combinedBtn">Combined</button>
-            </div>
-            
-            <div class="control-group">
-                <label>Animation Speed:</label>
-                <input type="range" id="speed" min="0" max="5" step="0.1" value="1">
-                <span id="speedValue">1.0</span>
-            </div>
-            <div class="control-group">
-                <label>Field Strength:</label>
-                <input type="range" id="strength" min="0.1" max="3" step="0.1" value="1">
-                <span id="strengthValue">1.0</span>
-            </div>
-            <div class="control-group">
-                <label>Arrow Scale:</label>
-                <input type="range" id="scale" min="0.5" max="2" step="0.1" value="1">
-                <span id="scaleValue">1.0</span>
-            </div>
-            <div class="control-group">
-                <label>Grid Size:</label>
-                <input type="range" id="gridSize" min="5" max="25" step="1" value="10">
-                <span id="gridSizeValue">10</span>
-            </div>
-            <div class="control-group">
-                <label>Frequency:</label>
-                <input type="range" id="frequency" min="0.1" max="2" step="0.1" value="0.5">
-                <span id="frequencyValue">0.5</span>
-            </div>
-            <div class="control-group">
-                <button id="pauseBtn">Pause</button>
-                <button id="resetBtn">Reset</button>
-            </div>
-        </div>
-        
-        <div id="legend">
-            <h4 style="margin-top: 0;">Legend</h4>
-            <div class="legend-item">
-                <div class="legend-color" style="background: linear-gradient(90deg, #ff0000, #00ff00, #0000ff);"></div>
-                <span>Vector Direction</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #ffffff;"></div>
-                <span>Grid Lines</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #ffff00;"></div>
-                <span>Center Point</span>
-            </div>
-        </div>
-        
         <div id="info">
-            Mouse: Pan | Wheel: Zoom | Right-click: Rotate<br>
-            <span id="vectorCount">100 vectors in 10×10 grid</span><br>
-            All arrows normalized to 1 unit length
+            <h3>Vector Flow Visualization</h3>
+            <p><strong>Surface:</strong> f(x,y) = x² + y²</p>
+            <p><strong>Controls:</strong> Mouse to orbit, wheel to zoom</p>
+            <p>Vectors orbit around the center - closer vectors move faster</p>
+        </div>
+        
+        <div id="controls">
+            <div class="control-group">
+                <label for="vectorScale">Vector Scale:</label>
+                <input type="range" id="vectorScale" min="0.1" max="2" step="0.1" value="0.8">
+            </div>
+            <div class="control-group">
+                <label for="flowSpeed">Flow Speed:</label>
+                <input type="range" id="flowSpeed" min="0.1" max="3" step="0.1" value="1">
+            </div>
+            <div class="control-group">
+                <label for="vectorDensity">Vector Density:</label>
+                <input type="range" id="vectorDensity" min="5" max="20" step="1" value="12">
+            </div>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        class VectorField2D {
-            constructor() {
-                this.scene = new THREE.Scene();
-                this.camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 1000);
-                this.renderer = new THREE.WebGLRenderer({ antialias: true });
-                this.clock = new THREE.Clock();
+        let scene, camera, renderer, surface, vectorGroup, controls;
+        let vectorScale = 0.8;
+        let flowSpeed = 1;
+        let vectorDensity = 12;
+        let time = 0;
+
+        // Simple orbit controls implementation
+        class OrbitControls {
+            constructor(camera, domElement) {
+                this.camera = camera;
+                this.domElement = domElement;
+                this.isMouseDown = false;
+                this.mouseX = 0;
+                this.mouseY = 0;
+                this.targetX = 0;
+                this.targetY = 0;
+                this.rotateSpeed = 0.005;
                 
-                this.gridSize = 10;
-                this.arrowLength = 1.0;
-                this.time = 0;
-                this.animationSpeed = 1.0;
-                this.fieldStrength = 1.0;
-                this.arrowScale = 1.0;
-                this.frequency = 0.5;
-                this.isPaused = false;
-                this.fieldType = 'wave';
-                
-                this.arrows = [];
-                this.arrowHelpers = [];
-                
-                this.init();
-                this.createVectorField();
-                this.setupControls();
-                this.setupCameraControls();
-                this.animate();
+                this.domElement.addEventListener('mousedown', this.onMouseDown.bind(this));
+                this.domElement.addEventListener('mousemove', this.onMouseMove.bind(this));
+                this.domElement.addEventListener('mouseup', this.onMouseUp.bind(this));
+                this.domElement.addEventListener('wheel', this.onWheel.bind(this));
             }
             
-            init() {
-                // Setup renderer
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.setClearColor(0x111111);
-                document.getElementById('container').appendChild(this.renderer.domElement);
+            onMouseDown(event) {
+                this.isMouseDown = true;
+                this.mouseX = event.clientX;
+                this.mouseY = event.clientY;
+            }
+            
+            onMouseMove(event) {
+                if (!this.isMouseDown) return;
                 
-                // Setup camera (2D orthographic view)
-                this.camera.position.set(0, 0, 10);
+                const deltaX = event.clientX - this.mouseX;
+                const deltaY = event.clientY - this.mouseY;
+                
+                this.targetX += deltaX * this.rotateSpeed;
+                this.targetY += deltaY * this.rotateSpeed;
+                
+                this.mouseX = event.clientX;
+                this.mouseY = event.clientY;
+            }
+            
+            onMouseUp() {
+                this.isMouseDown = false;
+            }
+            
+            onWheel(event) {
+                const scale = event.deltaY > 0 ? 1.1 : 0.9;
+                this.camera.position.multiplyScalar(scale);
+            }
+            
+            update() {
+                const radius = this.camera.position.length();
+                this.camera.position.x = radius * Math.cos(this.targetY) * Math.sin(this.targetX);
+                this.camera.position.y = radius * Math.sin(this.targetY);
+                this.camera.position.z = radius * Math.cos(this.targetY) * Math.cos(this.targetX);
                 this.camera.lookAt(0, 0, 0);
-                
-                // Add lighting
-                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-                this.scene.add(ambientLight);
-                
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                directionalLight.position.set(0, 0, 10);
-                this.scene.add(directionalLight);
-                
-                // Add grid helper for reference
-                this.createGrid();
-                
-                // Add center point marker
-                const centerGeometry = new THREE.SphereGeometry(0.1, 8, 6);
-                const centerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-                const centerSphere = new THREE.Mesh(centerGeometry, centerMaterial);
-                this.scene.add(centerSphere);
-                
-                // Handle window resize
-                window.addEventListener('resize', () => this.onWindowResize());
-            }
-            
-            createGrid() {
-                // Create a custom grid
-                const gridMaterial = new THREE.LineBasicMaterial({ color: 0x444444 });
-                const gridSize = 20;
-                const divisions = 20;
-                
-                const geometry = new THREE.BufferGeometry();
-                const vertices = [];
-                
-                // Horizontal lines
-                for (let i = 0; i <= divisions; i++) {
-                    const y = (i / divisions - 0.5) * gridSize;
-                    vertices.push(-gridSize/2, y, 0);
-                    vertices.push(gridSize/2, y, 0);
-                }
-                
-                // Vertical lines
-                for (let i = 0; i <= divisions; i++) {
-                    const x = (i / divisions - 0.5) * gridSize;
-                    vertices.push(x, -gridSize/2, 0);
-                    vertices.push(x, gridSize/2, 0);
-                }
-                
-                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-                const grid = new THREE.LineSegments(geometry, gridMaterial);
-                this.scene.add(grid);
-            }
-            
-            setupCameraControls() {
-                let isDragging = false;
-                let isRightDragging = false;
-                let previousMousePosition = { x: 0, y: 0 };
-                
-                this.renderer.domElement.addEventListener('mousedown', (e) => {
-                    if (e.button === 0) isDragging = true;
-                    if (e.button === 2) isRightDragging = true;
-                    previousMousePosition = { x: e.clientX, y: e.clientY };
-                });
-                
-                this.renderer.domElement.addEventListener('mousemove', (e) => {
-                    if (isDragging) {
-                        const deltaMove = {
-                            x: e.clientX - previousMousePosition.x,
-                            y: e.clientY - previousMousePosition.y
-                        };
-                        
-                        // Pan camera
-                        const panSpeed = 0.02;
-                        this.camera.position.x -= deltaMove.x * panSpeed;
-                        this.camera.position.y += deltaMove.y * panSpeed;
-                    }
-                    
-                    if (isRightDragging) {
-                        const deltaMove = {
-                            x: e.clientX - previousMousePosition.x,
-                            y: e.clientY - previousMousePosition.y
-                        };
-                        
-                        // Rotate camera around z-axis
-                        const rotationSpeed = 0.01;
-                        this.scene.rotation.z += deltaMove.x * rotationSpeed;
-                    }
-                    
-                    previousMousePosition = { x: e.clientX, y: e.clientY };
-                });
-                
-                this.renderer.domElement.addEventListener('mouseup', () => {
-                    isDragging = false;
-                    isRightDragging = false;
-                });
-                
-                this.renderer.domElement.addEventListener('wheel', (e) => {
-                    const zoomSpeed = 0.1;
-                    const factor = e.deltaY > 0 ? (1 + zoomSpeed) : (1 - zoomSpeed);
-                    
-                    // Zoom orthographic camera
-                    this.camera.left *= factor;
-                    this.camera.right *= factor;
-                    this.camera.top *= factor;
-                    this.camera.bottom *= factor;
-                    this.camera.updateProjectionMatrix();
-                });
-                
-                this.renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
-            }
-            
-            recreateField() {
-                // Clear existing arrows
-                this.arrows.forEach(arrow => this.scene.remove(arrow.helper));
-                this.arrows = [];
-                this.arrowHelpers = [];
-                
-                // Create new field
-                this.createVectorField();
-                
-                // Update info
-                document.getElementById('vectorCount').textContent = 
-                    `${this.gridSize * this.gridSize} vectors in ${this.gridSize}×${this.gridSize} grid`;
-            }
-            
-            createVectorField() {
-                const spacing = 1.5;
-                const halfGrid = (this.gridSize - 1) * spacing / 2;
-                
-                for (let x = 0; x < this.gridSize; x++) {
-                    for (let y = 0; y < this.gridSize; y++) {
-                        const position = new THREE.Vector3(
-                            x * spacing - halfGrid,
-                            y * spacing - halfGrid,
-                            0
-                        );
-                        
-                        // Create arrow helper
-                        const direction = new THREE.Vector3(1, 0, 0); // Initial direction
-                        const arrowHelper = new THREE.ArrowHelper(
-                            direction,
-                            position,
-                            this.arrowLength,
-                            this.getArrowColor(x, y),
-                            this.arrowLength * 0.2,
-                            this.arrowLength * 0.1
-                        );
-                        
-                        this.scene.add(arrowHelper);
-                        this.arrowHelpers.push(arrowHelper);
-                        
-                        // Store arrow data
-                        this.arrows.push({
-                            position: position.clone(),
-                            helper: arrowHelper,
-                            gridX: x,
-                            gridY: y
-                        });
-                    }
-                }
-            }
-            
-            getArrowColor(x, y) {
-                const hue = (x + y) / (this.gridSize * 2) * 360;
-                return new THREE.Color().setHSL(hue / 360, 0.7, 0.6);
-            }
-            
-            vectorFieldFunction(x, y, time) {
-                let vx = 0, vy = 0;
-                
-                switch (this.fieldType) {
-                    case 'wave':
-                        // Wave field
-                        vx = Math.sin(this.frequency * y + time);
-                        vy = Math.cos(this.frequency * x + time * 0.8);
-                        break;
-                        
-                    case 'vortex':
-                        // Vortex field (rotation around center)
-                        vx = -y + Math.sin(time * 0.5) * 0.5;
-                        vy = x + Math.cos(time * 0.7) * 0.5;
-                        break;
-                        
-                    case 'radial':
-                        // Radial field (expanding/contracting)
-                        const r = Math.sqrt(x * x + y * y);
-                        const phase = Math.sin(time) * 0.5 + 0.5;
-                        if (r > 0.1) {
-                            vx = (x / r) * phase;
-                            vy = (y / r) * phase;
-                        }
-                        break;
-                        
-                    case 'combined':
-                        // Combination of multiple patterns
-                        const wave_vx = Math.sin(this.frequency * y + time);
-                        const wave_vy = Math.cos(this.frequency * x + time * 0.8);
-                        const vortex_vx = -y * 0.3;
-                        const vortex_vy = x * 0.3;
-                        
-                        vx = wave_vx * 0.7 + vortex_vx;
-                        vy = wave_vy * 0.7 + vortex_vy;
-                        break;
-                }
-                
-                return new THREE.Vector2(vx, vy);
-            }
-            
-            updateVectorField() {
-                this.arrows.forEach(arrow => {
-                    const pos = arrow.position;
-                    const vector = this.vectorFieldFunction(pos.x, pos.y, this.time);
-                    
-                    // Normalize the vector to unit length
-                    const magnitude = vector.length();
-                    if (magnitude > 0.001) {
-                        vector.normalize();
-                        
-                        // Scale by field strength
-                        vector.multiplyScalar(this.fieldStrength);
-                        
-                        // Convert to 3D direction
-                        const direction3D = new THREE.Vector3(vector.x, vector.y, 0);
-                        
-                        // Update arrow
-                        arrow.helper.setDirection(direction3D);
-                        arrow.helper.setLength(
-                            this.arrowLength * this.arrowScale,
-                            this.arrowLength * this.arrowScale * 0.2,
-                            this.arrowLength * this.arrowScale * 0.1
-                        );
-                        
-                        // Update color based on direction and magnitude
-                        const angle = Math.atan2(vector.y, vector.x);
-                        const hue = ((angle + Math.PI) / (2 * Math.PI)) * 360;
-                        const saturation = 0.8;
-                        const lightness = 0.4 + magnitude * 0.3;
-                        
-                        arrow.helper.setColor(new THREE.Color().setHSL(hue / 360, saturation, lightness));
-                    }
-                });
-            }
-            
-            setFieldType(type) {
-                this.fieldType = type;
-                
-                // Update button states
-                document.querySelectorAll('.field-buttons button').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                document.getElementById(type + 'Btn').classList.add('active');
-            }
-            
-            setupControls() {
-                const speedSlider = document.getElementById('speed');
-                const strengthSlider = document.getElementById('strength');
-                const scaleSlider = document.getElementById('scale');
-                const gridSizeSlider = document.getElementById('gridSize');
-                const frequencySlider = document.getElementById('frequency');
-                const pauseBtn = document.getElementById('pauseBtn');
-                const resetBtn = document.getElementById('resetBtn');
-                
-                // Field type buttons
-                document.getElementById('waveBtn').addEventListener('click', () => {
-                    this.setFieldType('wave');
-                });
-                document.getElementById('vortexBtn').addEventListener('click', () => {
-                    this.setFieldType('vortex');
-                });
-                document.getElementById('radialBtn').addEventListener('click', () => {
-                    this.setFieldType('radial');
-                });
-                document.getElementById('combinedBtn').addEventListener('click', () => {
-                    this.setFieldType('combined');
-                });
-                
-                speedSlider.addEventListener('input', (e) => {
-                    this.animationSpeed = parseFloat(e.target.value);
-                    document.getElementById('speedValue').textContent = this.animationSpeed.toFixed(1);
-                });
-                
-                strengthSlider.addEventListener('input', (e) => {
-                    this.fieldStrength = parseFloat(e.target.value);
-                    document.getElementById('strengthValue').textContent = this.fieldStrength.toFixed(1);
-                });
-                
-                scaleSlider.addEventListener('input', (e) => {
-                    this.arrowScale = parseFloat(e.target.value);
-                    document.getElementById('scaleValue').textContent = this.arrowScale.toFixed(1);
-                });
-                
-                gridSizeSlider.addEventListener('input', (e) => {
-                    const newSize = parseInt(e.target.value);
-                    if (newSize !== this.gridSize) {
-                        this.gridSize = newSize;
-                        document.getElementById('gridSizeValue').textContent = newSize;
-                        this.recreateField();
-                    }
-                });
-                
-                frequencySlider.addEventListener('input', (e) => {
-                    this.frequency = parseFloat(e.target.value);
-                    document.getElementById('frequencyValue').textContent = this.frequency.toFixed(1);
-                });
-                
-                pauseBtn.addEventListener('click', () => {
-                    this.isPaused = !this.isPaused;
-                    pauseBtn.textContent = this.isPaused ? 'Resume' : 'Pause';
-                });
-                
-                resetBtn.addEventListener('click', () => {
-                    this.time = 0;
-                    this.camera.position.set(0, 0, 10);
-                    this.camera.left = -10;
-                    this.camera.right = 10;
-                    this.camera.top = 10;
-                    this.camera.bottom = -10;
-                    this.camera.updateProjectionMatrix();
-                    this.scene.rotation.z = 0;
-                });
-            }
-            
-            animate() {
-                requestAnimationFrame(() => this.animate());
-                
-                if (!this.isPaused) {
-                    const deltaTime = this.clock.getDelta();
-                    this.time += deltaTime * this.animationSpeed;
-                    this.updateVectorField();
-                }
-                
-                this.renderer.render(this.scene, this.camera);
-            }
-            
-            onWindowResize() {
-                const aspect = window.innerWidth / window.innerHeight;
-                const frustumSize = 20;
-                
-                this.camera.left = -frustumSize * aspect / 2;
-                this.camera.right = frustumSize * aspect / 2;
-                this.camera.top = frustumSize / 2;
-                this.camera.bottom = -frustumSize / 2;
-                this.camera.updateProjectionMatrix();
-                
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
             }
         }
-        
-        // Initialize the vector field
-        const vectorField = new VectorField2D();
+
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a1a);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(8, 6, 8);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x0a0a1a);
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+
+            const pointLight = new THREE.PointLight(0x4444ff, 0.5);
+            pointLight.position.set(0, 5, 0);
+            scene.add(pointLight);
+
+            // Create surface
+            createSurface();
+
+            // Create vector field
+            createVectorField();
+
+            // Setup controls
+            setupControls();
+
+            // Start animation
+            animate();
+        }
+
+        function createSurface() {
+            const geometry = new THREE.PlaneGeometry(8, 8, 50, 50);
+            const vertices = geometry.attributes.position.array;
+
+            // Apply the function f(x,y) = x² + y²
+            for (let i = 0; i < vertices.length; i += 3) {
+                const x = vertices[i];
+                const y = vertices[i + 1];
+                vertices[i + 2] = (x * x + y * y) * 0.15; // Scale down the height
+            }
+
+            geometry.attributes.position.needsUpdate = true;
+            geometry.computeVertexNormals();
+
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x2194ce,
+                wireframe: false,
+                transparent: true,
+                opacity: 0.7,
+                side: THREE.DoubleSide
+            });
+
+            surface = new THREE.Mesh(geometry, material);
+            surface.rotation.x = -Math.PI / 2;
+            scene.add(surface);
+
+            // Add wireframe version
+            const wireframeMaterial = new THREE.MeshBasicMaterial({
+                color: 0x44aaff,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.3
+            });
+            const wireframe = new THREE.Mesh(geometry.clone(), wireframeMaterial);
+            wireframe.rotation.x = -Math.PI / 2;
+            scene.add(wireframe);
+        }
+
+        function createVectorField() {
+            vectorGroup = new THREE.Group();
+            scene.add(vectorGroup);
+            updateVectorField();
+        }
+
+        function updateVectorField() {
+            // Clear existing vectors
+            while (vectorGroup.children.length > 0) {
+                vectorGroup.remove(vectorGroup.children[0]);
+            }
+
+            const range = 3;
+            const step = (range * 2) / vectorDensity;
+
+            for (let x = -range; x <= range; x += step) {
+                for (let y = -range; y <= range; y += step) {
+                    // Calculate height on surface
+                    const z = (x * x + y * y) * 0.15;
+
+                    // Calculate gradient (flow direction)
+                    // For f(x,y) = x² + y², gradient is (2x, 2y)
+                    const gradX = 2 * x;
+                    const gradY = 2 * y;
+                    
+                    // Calculate gradient magnitude (steepness of surface)
+                    const gradientMagnitude = Math.sqrt(gradX * gradX + gradY * gradY);
+                    
+                    // Create tangent flow (perpendicular to gradient)
+                    const flowX = -gradY;
+                    const flowY = gradX;
+                    const flowZ = 0;
+
+                    // Normalize direction
+                    const flowLength = Math.sqrt(flowX * flowX + flowY * flowY + flowZ * flowZ);
+                    if (flowLength > 0) {
+                        // Scale magnitude based on surface steepness
+                        // Add minimum magnitude to keep vectors visible at origin
+                        const magnitude = (gradientMagnitude * 0.3 + 0.2) * vectorScale;
+                        
+                        const scaledX = (flowX / flowLength) * magnitude;
+                        const scaledY = (flowY / flowLength) * magnitude;
+                        const scaledZ = (flowZ / flowLength) * magnitude;
+
+                        // Create vector arrow with magnitude-dependent size
+                        const vector = createArrow(scaledX, scaledY, scaledZ, magnitude);
+                        vector.position.set(x, z, y); // Note: y and z swapped due to surface rotation
+                        vector.userData = { 
+                            baseX: x, 
+                            baseY: y, 
+                            baseZ: z,
+                            flowX: scaledX,
+                            flowY: scaledY,
+                            flowZ: scaledZ,
+                            magnitude: magnitude,
+                            gradientMagnitude: gradientMagnitude,
+                            phase: Math.random() * Math.PI * 2
+                        };
+                        vectorGroup.add(vector);
+                    }
+                }
+            }
+        }
+
+        function createArrow(dirX, dirY, dirZ, magnitude) {
+            const group = new THREE.Group();
+
+            // Scale arrow components based on magnitude
+            const baseRadius = 0.02 * Math.max(0.3, magnitude);
+            const shaftLength = 0.8 * Math.max(0.3, magnitude);
+            const headRadius = 0.08 * Math.max(0.3, magnitude);
+            const headLength = 0.2 * Math.max(0.3, magnitude);
+
+            // Arrow shaft
+            const shaftGeometry = new THREE.CylinderGeometry(baseRadius, baseRadius, shaftLength);
+            const shaftMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xff6b6b,
+                emissive: 0x441111
+            });
+            const shaft = new THREE.Mesh(shaftGeometry, shaftMaterial);
+            shaft.position.y = shaftLength / 2;
+            group.add(shaft);
+
+            // Arrow head
+            const headGeometry = new THREE.ConeGeometry(headRadius, headLength);
+            const headMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xff4444,
+                emissive: 0x661111
+            });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = shaftLength + headLength / 2;
+            group.add(head);
+
+            // Orient the arrow
+            const direction = new THREE.Vector3(dirX, dirZ, dirY); // Adjust for coordinate system
+            const up = new THREE.Vector3(0, 1, 0);
+            const axis = new THREE.Vector3().crossVectors(up, direction).normalize();
+            const angle = Math.acos(up.dot(direction.normalize()));
+
+            if (axis.length() > 0) {
+                group.rotateOnAxis(axis, angle);
+            }
+
+            return group;
+        }
+
+        function setupControls() {
+            document.getElementById('vectorScale').addEventListener('input', (e) => {
+                vectorScale = parseFloat(e.target.value);
+                updateVectorField();
+            });
+
+            document.getElementById('flowSpeed').addEventListener('input', (e) => {
+                flowSpeed = parseFloat(e.target.value);
+            });
+
+            document.getElementById('vectorDensity').addEventListener('input', (e) => {
+                vectorDensity = parseInt(e.target.value);
+                updateVectorField();
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.016 * flowSpeed;
+
+            // Update vector animations
+            vectorGroup.children.forEach((vector, index) => {
+                const userData = vector.userData;
+                
+                // Create flowing animation by varying color and slight movement
+                const intensity = 0.5 + 0.5 * Math.sin(time * 2 + userData.phase);
+                
+                // Color based on both flow intensity and magnitude
+                const magnitudeNormalized = Math.min(userData.gradientMagnitude / 6, 1); // Normalize gradient magnitude
+                
+                vector.children.forEach(child => {
+                    if (child.material) {
+                        // Use magnitude to influence color: blue for low magnitude, red for high magnitude
+                        const hue = (1 - magnitudeNormalized) * 0.6; // Blue to red spectrum
+                        const saturation = 0.8 + magnitudeNormalized * 0.2;
+                        const lightness = 0.4 + intensity * 0.3 + magnitudeNormalized * 0.2;
+                        
+                        child.material.color.setHSL(hue, saturation, lightness);
+                        child.material.emissive.setHSL(hue, saturation, intensity * 0.1 + magnitudeNormalized * 0.05);
+                    }
+                });
+
+                // Calculate orbital motion around center
+                const radius = Math.sqrt(userData.baseX * userData.baseX + userData.baseY * userData.baseY);
+                
+                if (radius > 0.1) { // Avoid division by zero near center
+                    // Calculate current angle and add rotation based on time and radius
+                    const currentAngle = Math.atan2(userData.baseY, userData.baseX);
+                    const angularSpeed = flowSpeed * 0.5 / Math.max(radius, 0.5); // Slower for outer orbits
+                    const newAngle = currentAngle + time * angularSpeed + userData.phase * 0.1;
+                    
+                    // Calculate new position in orbit
+                    const newX = radius * Math.cos(newAngle);
+                    const newY = radius * Math.sin(newAngle);
+                    const newZ = (newX * newX + newY * newY) * 0.15; // Recalculate height on surface
+                    
+                    // Update vector position
+                    vector.position.x = newX;
+                    vector.position.y = newZ;
+                    vector.position.z = newY;
+                    
+                    // Update flow direction for new position
+                    const gradX = 2 * newX;
+                    const gradY = 2 * newY;
+                    const gradientMagnitude = Math.sqrt(gradX * gradX + gradY * gradY);
+                    
+                    // Tangent flow direction at new position
+                    const flowX = -gradY;
+                    const flowY = gradX;
+                    const flowLength = Math.sqrt(flowX * flowX + flowY * flowY);
+                    
+                    if (flowLength > 0) {
+                        const magnitude = (gradientMagnitude * 0.3 + 0.2) * vectorScale;
+                        const scaledX = (flowX / flowLength) * magnitude;
+                        const scaledY = (flowY / flowLength) * magnitude;
+                        
+                        // Update arrow orientation
+                        const direction = new THREE.Vector3(scaledX, 0, scaledY);
+                        const up = new THREE.Vector3(0, 1, 0);
+                        const axis = new THREE.Vector3().crossVectors(up, direction).normalize();
+                        const angle = Math.acos(up.dot(direction.normalize()));
+                        
+                        vector.rotation.set(0, 0, 0);
+                        if (axis.length() > 0) {
+                            vector.rotateOnAxis(axis, angle);
+                        }
+                    }
+                } else {
+                    // For vectors near center, just apply gentle wobbling
+                    const wobble = 0.1 * Math.sin(time * 2 + userData.phase);
+                    vector.position.x = userData.baseX + wobble * Math.cos(userData.phase);
+                    vector.position.z = userData.baseY + wobble * Math.sin(userData.phase);
+                }
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.addEventListener('resize', onWindowResize);
+        init();
     </script>
 </body>
 </html>
